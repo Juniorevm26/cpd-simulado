@@ -36,16 +36,31 @@ button{font:inherit;color:inherit;cursor:pointer}
 .q{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
 .q .tag{font-size:12px;color:var(--mute);margin-bottom:6px}
 .q p{margin:0 0 12px;font-size:17px;font-weight:600}
-.opt{display:block;width:100%;text-align:left;border:1px solid var(--line);background:transparent;border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.opt{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;border:1px solid var(--line);background:transparent;border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.opt .k{flex:none;width:24px;height:24px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--mute)}
+.opt.right .k{background:var(--ok);border-color:var(--ok);color:var(--bg)}
+.opt.wrong .k{background:var(--bad);border-color:var(--bad);color:var(--bg)}
 .opt:hover:not(:disabled){border-color:var(--accent)}
 .opt:disabled{cursor:default;color:inherit}
 .opt.right{background:var(--okbg);border-color:var(--ok)}
 .opt.wrong{background:var(--badbg);border-color:var(--bad)}
-.fb{font-size:14px;margin:6px 0 10px;color:var(--mute)}
+.fb{font-size:15px;margin:6px 0 10px;color:var(--ink);background:var(--bg);border-radius:10px;padding:10px 12px}
+.fb .v{font-weight:800}.fb.ok .v{color:var(--ok)}.fb.bad .v{color:var(--bad)}
 .tools{display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px;margin-top:6px}
 .tool{border:1px solid var(--line);background:transparent;border-radius:8px;padding:5px 10px;font-size:13px}
 .tool[aria-pressed="true"]{background:var(--accent);color:var(--onaccent);border-color:var(--accent)}
 .empty{text-align:center;color:var(--mute);padding:40px 10px}
+.prog{height:5px;border-radius:99px;background:var(--line);overflow:hidden;margin:0 0 12px}
+.prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
+.q{scroll-margin-top:12px}
+.q[tabindex="-1"]:focus{outline:none}
+.nav{display:flex;gap:8px;position:sticky;bottom:0;padding:10px 0 calc(10px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,var(--bg) 78%,transparent)}
+.nbtn{flex:1;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:12px 8px;font-weight:600;font-size:15px}
+.nbtn.primary{background:var(--accent);border-color:var(--accent);color:var(--onaccent)}
+.nbtn:disabled{opacity:.4;cursor:default}
+.hint{display:none;text-align:center;font-size:12px;color:var(--mute);margin:0}
+@media (hover:hover) and (pointer:fine){.hint{display:block}}
+.sum{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px;font-size:15px}.sum b{font-size:24px}.sum .ok b{color:var(--ok)}.sum .bad b{color:var(--bad)}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 @media (max-width:420px){.stat b{font-size:20px}}
 </style>
@@ -64,6 +79,7 @@ button{font:inherit;color:inherit;cursor:pointer}
   <div class="filters" id="fStatus" aria-label="Filtrar por situação"></div>
   <div class="filters" id="fType" aria-label="Filtrar por tipo"></div>
   <div class="bar"><span id="count"></span><button class="link" id="reset">Zerar</button></div>
+  <div class="prog" id="prog"><i></i></div>
   <div id="list"></div>
 </main>
 
@@ -795,18 +811,21 @@ const SUBJECTS = [
 const STATUS=[["all","Todas"],["new","Não respondidas"],["wrong","Só as que errei"],["fav","Favoritas"],["dub","⚠ Duvidosas"],["bl","🚫 Lista negra"]];
 const TYPES=[["all","Todas"],["vf","Verdadeiro ou falso"],["mc","Múltipla escolha"]].filter(([v])=>v==="all"||SUBJECTS.some(s=>s.questions.some(q=>q.tipo===v)));
 const KEY="simulado-dp-cpd-v1";
-let S={ans:{},fav:{},dub:{},bl:{}}, cur=0, fs="all", ft="all", shuffle=false, rank={}, armed=false;
+let S={ans:{},fav:{},dub:{},bl:{}}, cur=0, fs="all", ft="all", shuffle=false, rank={}, armed=false, order=[], pos=0;
 
 try{const r=localStorage.getItem(KEY); if(r) S=Object.assign(S,JSON.parse(r));}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
 
+const byId={};
 SUBJECTS.forEach(s=>s.questions.forEach((q,i)=>{
   q.id="Q"+q.n;
   if(q.tipo==="vf") q.opts=["Verdadeiro","Falso"];
+  byId[q.id]=q;
 }));
 
 const $=id=>document.getElementById(id);
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const LET="ABCDEFGH";
 
 function chips(el,items,cur,key){
   el.innerHTML=items.map(([v,l])=>`<button class="chip" aria-pressed="${cur===v}" data-${key}="${v}">${l}</button>`).join("");
@@ -828,6 +847,24 @@ function visible(sub){
   return l;
 }
 
+/* Fila de questões: fixada ao mudar filtro/ordem, para a questão atual não sumir ao ser respondida. */
+function rebuild(){ order=visible(SUBJECTS[cur]).map(q=>q.id); pos=0; }
+function mark(){ if(pos<order.length){ S.last=order[pos]; save(); } }
+function answer(id,i){ S.ans[id]=i; save(); }
+function go(k){
+  if(k==="prev") pos=Math.max(0,pos-1);
+  else if(k==="next"||k==="skip") pos=Math.min(order.length,pos+1);
+  else if(k==="first") pos=0;
+  else if(k==="review"){ order=order.filter(id=>S.ans[id]===undefined); pos=0; }
+  mark();
+}
+function focusCard(){
+  const el=$("list").querySelector(".q"); if(!el) return;
+  try{el.focus({preventScroll:true});}catch(e){}
+  const r=el.getBoundingClientRect();
+  if(r.top<0||r.top>window.innerHeight*0.6) el.scrollIntoView({block:"start"});
+}
+
 function render(){
   const sub=SUBJECTS[cur];
   $("title").textContent=sub.nome;
@@ -838,48 +875,89 @@ function render(){
   t.innerHTML=TYPES.map(([v,l])=>`<button class="chip" aria-pressed="${ft===v}" data-ft="${v}">${l}</button>`).join("")
     +`<button class="chip" aria-pressed="${shuffle}" data-shuffle="1">🔀 Embaralhar</button>`;
 
-  const all=sub.questions;
+  const all=sub.questions, n=order.length;
   $("sOk").textContent=all.filter(q=>S.ans[q.id]===q.resp).length;
   $("sBad").textContent=all.filter(q=>S.ans[q.id]!==undefined&&S.ans[q.id]!==q.resp).length;
   $("sFav").textContent=all.filter(q=>S.fav[q.id]).length;
-
-  const list=visible(sub);
-  $("sTot").textContent=list.length;
-  $("count").textContent=list.length+(list.length===1?" questão":" questões")+" neste filtro";
+  $("sTot").textContent=n;
+  $("count").textContent=!n?"0 questões neste filtro":pos<n?`Questão ${pos+1} de ${n}`:`Fim · ${n} ${n===1?"questão":"questões"}`;
+  $("prog").firstElementChild.style.width=n?Math.round((pos<n?pos+1:n)/n*100)+"%":"0%";
   $("reset").textContent=armed?"Confirmar: apagar tudo?":"Zerar";
 
-  $("list").innerHTML=list.length?list.map(q=>{
-    const a=S.ans[q.id], done=a!==undefined;
-    const opts=q.opts.map((o,i)=>{
-      let c="opt"; if(done){ if(i===q.resp)c+=" right"; else if(i===a)c+=" wrong"; }
-      return `<button class="${c}" data-ans="${q.id}|${i}" ${done?"disabled":""}>${esc(o)}</button>`;
-    }).join("");
-    const fb=done?`<div class="fb">${a===q.resp?"✅ Acertou.":"❌ Errou."} ${q.exp?esc(q.exp):""}${q.unsure?" Gabarito sugerido, não consta no material enviado.":""} <button class="link" data-redo="${q.id}">Refazer</button></div>`:"";
-    return `<article class="q"><div class="tag">Questão ${q.n} · ${q.tipo==="vf"?"Verdadeiro ou falso":"Múltipla escolha"}${q.unsure?" · ⚠ gabarito a confirmar":""}</div><p>${esc(q.q)}</p>${opts}${fb}
+  const box=$("list");
+  if(!n){ box.innerHTML=`<div class="empty">Nenhuma questão neste filtro.</div>`; return; }
+
+  if(pos>=n){
+    const ok=order.filter(id=>S.ans[id]===byId[id].resp).length;
+    const bad=order.filter(id=>S.ans[id]!==undefined&&S.ans[id]!==byId[id].resp).length;
+    const skip=n-ok-bad;
+    box.innerHTML=`<article class="q end" tabindex="-1"><div class="tag">Fim da lista</div><p>🏁 Você chegou ao fim.</p>
+      <div class="sum"><span class="ok"><b>${ok}</b> ${ok===1?"acerto":"acertos"}</span><span class="bad"><b>${bad}</b> ${bad===1?"erro":"erros"}</span><span><b>${skip}</b> ${skip===1?"pulada":"puladas"}</span></div>
+      ${skip?`<button class="opt" data-go="review"><span class="k">↺</span><span>Rever ${skip===1?"a questão pulada":"as "+skip+" puladas"}</span></button>`:""}
+      <button class="opt" data-go="first"><span class="k">⟲</span><span>Voltar à primeira questão</span></button>
+    </article>
+    <div class="nav"><button class="nbtn" data-go="prev">← Anterior</button></div>`;
+    return;
+  }
+
+  const q=byId[order[pos]], a=S.ans[q.id], done=a!==undefined, right=a===q.resp;
+  const opts=q.opts.map((o,i)=>{
+    let c="opt"; if(done){ if(i===q.resp)c+=" right"; else if(i===a)c+=" wrong"; }
+    return `<button class="${c}" data-ans="${q.id}|${i}" ${done?"disabled":""}><span class="k">${LET[i]}</span><span>${esc(o)}</span></button>`;
+  }).join("");
+  const fb=done?`<div class="fb ${right?"ok":"bad"}" role="status"><b class="v">${right?"✅ Acertou!":"❌ Errou."}</b>${right?"":` A correta é a alternativa <b>${LET[q.resp]}</b>.`} ${q.exp?esc(q.exp):""}${q.unsure?" Gabarito sugerido, não consta no material enviado.":""} <button class="link" data-redo="${q.id}">Refazer</button></div>`:"";
+  box.innerHTML=`<article class="q" tabindex="-1"><div class="tag">Questão ${q.n} · ${q.tipo==="vf"?"Verdadeiro ou falso":"Múltipla escolha"}${q.unsure?" · ⚠ gabarito a confirmar":""}</div><p>${esc(q.q)}</p>${opts}${fb}
       <div class="tools">
         <button class="tool" aria-pressed="${!!S.fav[q.id]}" data-tg="fav|${q.id}">⭐ Favorita</button>
         <button class="tool" aria-pressed="${!!S.dub[q.id]}" data-tg="dub|${q.id}">⚠ Duvidosa</button>
         <button class="tool" aria-pressed="${!!S.bl[q.id]}" data-tg="bl|${q.id}">🚫 Lista negra</button>
-      </div></article>`;
-  }).join(""):`<div class="empty">Nenhuma questão neste filtro.</div>`;
+      </div></article>
+    <div class="nav">
+      <button class="nbtn" data-go="prev" ${pos===0?"disabled":""}>← Anterior</button>
+      <button class="nbtn" data-go="skip" ${done?"disabled":""}>Pular</button>
+      <button class="nbtn primary" data-go="next" ${done?"":"disabled"}>${pos===n-1?"Finalizar":"Próxima →"}</button>
+    </div>
+    <p class="hint">Atalhos: A–D responde · ← → navega</p>`;
 }
 
 document.addEventListener("click",e=>{
   const b=e.target.closest("button"); if(!b) return;
-  const d=b.dataset;
-  if(d.tab!==undefined){cur=+d.tab;}
-  else if(d.fs){fs=d.fs;}
-  else if(d.ft){ft=d.ft;}
-  else if(d.shuffle){shuffle=!shuffle; rank={}; SUBJECTS.forEach(s=>s.questions.forEach(q=>rank[q.id]=Math.random()));}
-  else if(d.ans){const [id,i]=d.ans.split("|"); S.ans[id]=+i; save();}
+  const d=b.dataset; let nav=false;
+  if(d.tab!==undefined){cur=+d.tab; rebuild();}
+  else if(d.fs){fs=d.fs; rebuild();}
+  else if(d.ft){ft=d.ft; rebuild();}
+  else if(d.shuffle){shuffle=!shuffle; rank={}; SUBJECTS.forEach(s=>s.questions.forEach(q=>rank[q.id]=Math.random())); rebuild();}
+  else if(d.ans){const [id,i]=d.ans.split("|"); answer(id,+i);}
   else if(d.redo){delete S.ans[d.redo]; save();}
-  else if(d.tg){const [k,id]=d.tg.split("|"); if(S[k][id]) delete S[k][id]; else S[k][id]=1; save();}
+  else if(d.go){go(d.go); nav=true;}
+  else if(d.tg){
+    const [k,id]=d.tg.split("|");
+    if(S[k][id]) delete S[k][id]; else S[k][id]=1; save();
+    if(k==="bl"){ const j=order.indexOf(id); if(j>=0) order.splice(j,1); nav=true; mark(); }
+  }
   else if(b.id==="reset"){
     if(!armed){armed=true; render(); setTimeout(()=>{armed=false;render();},4000); return;}
-    S={ans:{},fav:{},dub:{},bl:{}}; save(); armed=false;
+    S={ans:{},fav:{},dub:{},bl:{}}; save(); armed=false; rebuild();
   } else return;
   render();
+  if(nav) focusCard();
 });
+
+document.addEventListener("keydown",e=>{
+  if(e.ctrlKey||e.metaKey||e.altKey) return;
+  const q=byId[order[pos]], done=!!q&&S.ans[q.id]!==undefined;
+  if(e.key==="ArrowLeft"){ go("prev"); }
+  else if(e.key==="ArrowRight"){ if(pos>=order.length) return; go(done?"next":"skip"); }
+  else if(q&&!done&&e.key.length===1){
+    let j="abcdefgh".indexOf(e.key.toLowerCase()); if(j<0) j="12345678".indexOf(e.key);
+    if(j<0||j>=q.opts.length) return;
+    answer(q.id,j); render(); return;
+  } else return;
+  render(); focusCard();
+});
+
+rebuild();
+{const i=order.indexOf(S.last); if(i>=0) pos=i;}
 render();
 </script>
 </body>
