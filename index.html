@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CPD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F2F5F3;--card:#fff;--ink:#14232B;--mute:#5E6F76;--line:#D5DEDA;--accent:#0F6B6B;--onaccent:#fff;--ok:#2E7D4F;--okbg:#DFF2E6;--bad:#B93A2C;--badbg:#F9E0DC;--warn:#B07A00;color-scheme:light;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0E1A20;--card:#162830;--ink:#E6EEEC;--mute:#93A7AD;--line:#2A3F48;--accent:#4FC3BD;--onaccent:#0E1A20;--ok:#6FD39A;--okbg:#17382A;--bad:#FF8A7A;--badbg:#401F1B;--warn:#F2C14E;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0E1A20;--card:#162830;--ink:#E6EEEC;--mute:#93A7AD;--line:#2A3F48;--accent:#4FC3BD;--onaccent:#0E1A20;--ok:#6FD39A;--okbg:#17382A;--bad:#FF8A7A;--badbg:#401F1B;--warn:#F2C14E;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.5}
+main{max-width:720px;margin:0 auto;padding:20px 16px 60px}
+header{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+header .logo{font-size:34px}
+h1{font-size:22px;font-weight:800;margin:0;letter-spacing:-.01em}
+.sub{color:var(--mute);margin:0 0 16px;font-size:14px}
+.tabs[hidden]{display:none}
+.tabs,.filters{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:10px}
+button{font:inherit;color:inherit;cursor:pointer}
+.chip{flex:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 14px;font-size:14px;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--onaccent);font-weight:600}
+.tab{border-radius:12px;padding:10px 14px;text-align:left}
+.tab small{display:block;font-size:11px;opacity:.75}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.stat b{display:block;font-size:24px;font-weight:800}
+.stat span{font-size:12px;color:var(--mute)}
+.stat.ok b{color:var(--ok)}.stat.bad b{color:var(--bad)}.stat.fav b{color:var(--warn)}
+.bar{display:flex;justify-content:space-between;align-items:center;margin:6px 0 10px;font-size:13px;color:var(--mute)}
+.link{background:none;border:0;color:var(--mute);text-decoration:underline;padding:4px}
+.q{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.q .tag{font-size:12px;color:var(--mute);margin-bottom:6px}
+.q p{margin:0 0 12px;font-size:17px;font-weight:600}
+.opt{display:block;width:100%;text-align:left;border:1px solid var(--line);background:transparent;border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt:disabled{cursor:default;color:inherit}
+.opt.right{background:var(--okbg);border-color:var(--ok)}
+.opt.wrong{background:var(--badbg);border-color:var(--bad)}
+.fb{font-size:14px;margin:6px 0 10px;color:var(--mute)}
+.tools{display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px;margin-top:6px}
+.tool{border:1px solid var(--line);background:transparent;border-radius:8px;padding:5px 10px;font-size:13px}
+.tool[aria-pressed="true"]{background:var(--accent);color:var(--onaccent);border-color:var(--accent)}
+.empty{text-align:center;color:var(--mute);padding:40px 10px}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+@media (max-width:420px){.stat b{font-size:20px}}
+</style>
+</head>
+<body>
+<main>
+  <header><span class="logo" aria-hidden="true">📚</span><div><h1 id="title">CPD</h1></div></header>
+  <p class="sub">Questões da avaliação CPD · 57 questões. Gabaritos conferidos com o Manual Keelson e as Regras de Ouro. As marcadas com ⚠ não constam no material.</p>
+  <nav class="tabs" id="tabs" aria-label="Disciplinas"></nav>
+  <section class="stats" aria-live="polite">
+    <div class="stat"><b id="sTot">0</b><span>Questões</span></div>
+    <div class="stat ok"><b id="sOk">0</b><span>Acertos</span></div>
+    <div class="stat bad"><b id="sBad">0</b><span>Erros</span></div>
+    <div class="stat fav"><b id="sFav">0</b><span>Favoritas</span></div>
+  </section>
+  <div class="filters" id="fStatus" aria-label="Filtrar por situação"></div>
+  <div class="filters" id="fType" aria-label="Filtrar por tipo"></div>
+  <div class="bar"><span id="count"></span><button class="link" id="reset">Zerar</button></div>
+  <div id="list"></div>
+</main>
+
+<script>
+/* ============ QUESTÕES ============
+   n: número da questão na avaliação original
+   tipo: "vf" (verdadeiro/falso) → resp: 0 = Verdadeiro, 1 = Falso
+   tipo: "mc" (múltipla escolha) → opts: [...], resp: índice da correta (começa em 0)
+   unsure: true → gabarito a confirmar
+   exp: explicação opcional mostrada após responder */
+const SUBJECTS = [
+ {
+  "id": "CPD",
+  "sigla": "CPD",
+  "nome": "CPD",
+  "emoji": "📚",
+  "questions": [
+   {
+    "n": 1,
+    "tipo": "mc",
+    "q": "IMCA M166 and M190 are related to DP FMEA and testing. What three core elements should a DP system be able to prove?",
+    "opts": [
+     "Fault tolerance, fault ride through, and independence",
+     "Resistance, resilience, and endurance",
+     "Autonomy, independence, self sufficiency",
+     "Performance, protection, and detection"
+    ],
+    "resp": 3,
+    "exp": "Manual Keelson, p. 57: os três atributos de um sistema tolerante a falhas são Performance, Protection e Detection (MTS)."
+   },
+   {
+    "n": 2,
+    "tipo": "mc",
+    "q": "When might it be a good idea to deselect a wind sensor in a specific location during operations?",
+    "opts": [
+     "In cold temperatures",
+     "During significant heading changes",
+     "During Heliops",
+     "During a storm surge"
+    ],
+    "resp": 2
+   },
+   {
+    "n": 3,
+    "tipo": "mc",
+    "q": "Which of the following best describes the DP Operations Manual on a DP Vessel?",
+    "opts": [
+     "The manufacturers manual on how to operate the DP System.",
+     "The DP Operations Manual is widely misunderstood and is the DP FMEA.",
+     "A set of trials conducted annually.",
+     "A bespoke manual which covers the manning, operation and equipment installed across the entire DP arrangement."
+    ],
+    "resp": 3
+   },
+   {
+    "n": 4,
+    "tipo": "mc",
+    "q": "What steps should be considered in the operational planning of float over work per IMCA M103 Rev 5 - Guidance for the design and operation of DP vessels?",
+    "opts": [
+     "Location Safety Case.",
+     "Risk assessment, detailed installation / removal manual, DP configuration (CAM and TAM) and ASOG.",
+     "Location specific developed in the ASOG and includes CAM TAM modes.",
+     "Bow tie analysis shall be conducted in advance."
+    ],
+    "resp": 1,
+    "unsure": true
+   },
+   {
+    "n": 5,
+    "tipo": "mc",
+    "q": "On the loss of a single MRU onboard where a vessel has 3 MRUs in total what is the best course of action in terms of decision support tools (WSOG, ASOG etc)?",
+    "opts": [
+     "Vessel prepares for termination of activities (Yellow status at ASOG / WSOG etc).",
+     "The loss is reported to the Master who makes an informed decision on the next steps.",
+     "Vessel immediately ceases operations and exits the 500m zone.",
+     "Vessel goes to a blue status on the ASOG - advise / risk assess."
+    ],
+    "resp": 3,
+    "exp": "Manual Keelson, p. 255: com 3 MRUs, perder uma mantém a redundância. É estado azul (advisory) do ASOG: avaliar o risco e seguir."
+   },
+   {
+    "n": 6,
+    "tipo": "mc",
+    "q": "What is the best description of a soliton?",
+    "opts": [
+     "Oceanographic phenomenon that results in a favourable low current condition",
+     "Oceanographic phenomenon that results in a high current force for a period covering a season or multiple seasons depending on location.",
+     "Oceanographic phenomenon that results in a short term high current force.",
+     "Oceanographic phenomenon that results in a high wind condition for a short period of time."
+    ],
+    "resp": 2,
+    "exp": "Solitons são ondas internas não lineares que causam picos de corrente de curta duração (IMCA, 'Beware the solitons')."
+   },
+   {
+    "n": 7,
+    "tipo": "mc",
+    "q": "What is an advantage of hybrid battery systems on DP Vessels?",
+    "opts": [
+     "A low fire risk source of energy.",
+     "The ability to reduce voltage but still prove power.",
+     "A source of energy that does not require safety considerations due to the low voltage nature.",
+     "Provide readily available spinning reserve rather than rotating sources."
+    ],
+    "resp": 3,
+    "exp": "Manual Keelson, p. 220: baterias dimensionadas para o tempo de término podem fornecer a reserva girante (spinning reserve)."
+   },
+   {
+    "n": 8,
+    "tipo": "mc",
+    "q": "What precautions should be taken by the vessel's crew prior to every DP Operation? (Ref: IMO MSC 1580)",
+    "opts": [
+     "The DP system should be checked against applicable checklists and critical tests from the DP annual trials should be carried out.",
+     "The DP system should be checked against applicable checklists and the wind conditions reviewed.",
+     "The DP System should be checked against applicable check lists and Worst Case Failure (WCF) testing should be carried out",
+     "The DP system should be checked against applicable check lists and decision support tools such as ASOG should be available."
+    ],
+    "resp": 3,
+    "exp": "IMO MSC.1/Circ.1580, 4.1 (Manual Keelson, p. 267): antes de toda operação DP, checar contra os checklists aplicáveis e ter ferramentas de apoio à decisão, como o ASOG."
+   },
+   {
+    "n": 9,
+    "tipo": "mc",
+    "q": "What is a DP system FMEA? (Ref: IMO MSC 1580)",
+    "opts": [
+     "A set of tests conducted every five years to ensure the vessel can maintain heading and position under fault conditions.",
+     "A study that identifies single failure modes and assesses them against a design worst case failure to ensure the vessel can maintain and heading position under those single fault conditions.",
+     "A set of trials conducted annually to ensure the vessel can maintain heading and position under fault conditions.",
+     "A study that identifies single and multiple failure modes and assesses them against a design worst case failure to ensure the vessel can maintain position under multiple fault conditions."
+    ],
+    "resp": 1
+   },
+   {
+    "n": 10,
+    "tipo": "mc",
+    "q": "What should a DP FMEA analyze? (Ref: IMO MSC 1580)",
+    "opts": [
+     "Computer system/joystick system; control stations and display systems; associated cabling and cable routing; networks.",
+     "Computer system/joystick system; sensor systems; control stations and display systems; position reference systems; associated cabling and cable routing; networks.",
+     "The complete installation necessary for dynamically positioning a vessel including but not limited to a: power system, thruster system, and DP control system.",
+     "DP Control Station; Operator Station; Thrusters."
+    ],
+    "resp": 2
+   },
+   {
+    "n": 11,
+    "tipo": "mc",
+    "q": "What is the definition of equipment class 3 vessels? (Ref: IMO MSC 1580)",
+    "opts": [
+     "A loss of heading but NOT position may occur in the event of a single fault or loss of compartment due to fire.",
+     "A loss of position but NOT heading loss may occur in the event of a single fault or loss of compartment due to flooding.",
+     "A loss of position or heading will NOT occur in the event of a single fault in any static component or system or loss of compartment due to flooding or fire.",
+     "A loss of position or heading will NOT occur in the event of a single fault in any active or static component or system or loss of compartment due to flooding or fire."
+    ],
+    "resp": 3
+   },
+   {
+    "n": 12,
+    "tipo": "mc",
+    "q": "What is the definition of equipment class 2 vessels? (Ref: IMO MSC 1580)",
+    "opts": [
+     "A loss of heading but NOT position may occur in the event of a single fault.",
+     "A loss of position or heading will NOT occur in the event of a single fault in any active component or system.",
+     "A loss of position or heading will NOT occur in the event of a single fault in any active or static component or system.",
+     "A loss of position but NOT heading loss may occur in the event of a single fault."
+    ],
+    "resp": 1
+   },
+   {
+    "n": 13,
+    "tipo": "mc",
+    "q": "How is single failure criteria for DP equipment class 2 vessels defined? (Ref: IMO MSC 1580)",
+    "opts": [
+     "Redundancy of all active components.",
+     "Redundancy of electrical busbar systems in the OPEN BUS mode of operation.",
+     "Redundancy of all active and static components.",
+     "Redundancy of thrusters."
+    ],
+    "resp": 0
+   },
+   {
+    "n": 14,
+    "tipo": "mc",
+    "q": "What does IMO MSC 1580 require in a DP annual survey? (Ref: IMO MSC 1580)",
+    "opts": [
+     "DP Documentation review.",
+     "Review of the DP FMEA and completion of selected DP Proving Trials witnessed by officers of the flag state or nominated individuals.",
+     "Functional test of DP testing in the presence of a class surveyor.",
+     "An annual survey that confirms maintenance of DP systems, the systems functionality and the ability to keep station after single failures associated with the equipment witnessed by officers of the flag state or nominated surveyors or organisations."
+    ],
+    "resp": 3,
+    "exp": "IMO MSC.1/Circ.1580, 5.1.1.3 (Manual Keelson, p. 62): a vistoria anual confirma a manutenção do sistema e a capacidade de manter posição após falhas singulares."
+   },
+   {
+    "n": 15,
+    "tipo": "mc",
+    "q": "Failure as defined in DP terms means an occurrence in a component or system that causes which of the following effects? (Ref: IMO MSC 1580)",
+    "opts": [
+     "An event that could lead to a worst case failure (WCF).",
+     "Deterioration of equipment to such an extent that a redundancy group within the vessels system may be compromised.",
+     "Loss of one or more thrusters such that the safety of the vessel is compromised.",
+     "The loss of DP components or DP system function and/or deterioration of DP functional capability to such an extent that the safety of the vessel, personnel, or environmental protection is significantly reduced."
+    ],
+    "resp": 3
+   },
+   {
+    "n": 16,
+    "tipo": "mc",
+    "q": "In reference to dynamic positioning what is the objective of a power management system? (Ref: IMO MSC 1580)",
+    "opts": [
+     "A microprocessor arrangement consisting of a Programmable Logic Controller (PLC) in each main switchboard section",
+     "A system that ensures continuity of electrical supply under all operating conditions.",
+     "A system that ensures standby electrical systems will maintain power and prevent a failure of the most effective forward thruster.",
+     "A system that ensures electrical protection systems will open Bus-Tie breakers in the event of a fault."
+    ],
+    "resp": 1,
+    "exp": "IMO MSC.1/Circ.1580, 1.2.19 (Manual Keelson, p. 188): sistema que garante a continuidade do fornecimento elétrico em todas as condições de operação."
+   },
+   {
+    "n": 17,
+    "tipo": "mc",
+    "q": "A big part of DP vessel design is redundancy of systems and equipment. Which of the following best describes redundancy as applied in the DP industry? (Ref: IMO MSC 1580)",
+    "opts": [
+     "The ability of a component or system to maintain or restore its function when a single failure has concurred.",
+     "Providing at least 2 components or systems to maintain function.",
+     "Providing backup systems remotely located from the main DP console.",
+     "The ability of a component or system to maintain function after a Worst Case Failure (WCF) event has occurred."
+    ],
+    "resp": 0
+   },
+   {
+    "n": 18,
+    "tipo": "mc",
+    "q": "Why should UPS supplies to engine control systems be configured within redundancy groups? (Ref: IMCA DP SKB)",
+    "opts": [
+     "So that batteries can be easily replaced without terminating DP activities.",
+     "So that if a UPS output or hidden failure occurs and a UPS fails only one redundancy group will be effected.",
+     "So that maintenance can be carried out on UPS units without terminating DP activities",
+     "They don't need to be configured per the redundancy groups as the UPS will provide a robust support."
+    ],
+    "resp": 1
+   },
+   {
+    "n": 19,
+    "tipo": "mc",
+    "q": "What are the risks associated with using controllable pitch propellers for DP operations? (Ref: IMCA DP SKB 03/21)",
+    "opts": [
+     "A mechanically based failure causing a total loss of thrust from the associated thruster.",
+     "Increased down time as a result of additional vibration induced from the direct connection to the prime mover.",
+     "A mechanically based failure causing pitch movement and unwanted thrust on the effected thruster that results in a drive off condition.",
+     "A lack of dynamic DP Control meaning positional errors are more likely."
+    ],
+    "resp": 2,
+    "exp": "Manual Keelson, p. 238: thrusters com CPP hidromecânico podem falhar para empuxo máximo, causando drive-off."
+   },
+   {
+    "n": 20,
+    "tipo": "mc",
+    "q": "In a DP vessels documentation, its worst case failure (WCF) should be clearly communicated. Which of the following best describes what WCF means? (Ref: IMO MSC 1580)",
+    "opts": [
+     "The identified single fault of the DP system resulting in detrimental effects to DP capability as determined during the vessels DP FMEA proving trials.",
+     "The identified single fault of the DP system resulting in detrimental effects to DP capability as determined by the vessels DP operation manual.",
+     "The identified single fault in the DP system resulting in maximum detrimental effect on DP capability as determined by the vessels DP FMEA.",
+     "The identified single fault of the DP system resulting in detrimental effects to DP capability as determined by the vessels ASOG for that particular operation."
+    ],
+    "resp": 2
+   },
+   {
+    "n": 21,
+    "tipo": "mc",
+    "q": "Which of the following best describes the requirement for redundancy of the power system on Equipment Class 1 (DP1) vessels? (Ref: IMO MSC 1580)",
+    "opts": [
+     "The power system of a Equipment Class 1 (DP1) vessel should always be operated split, or OPEN BUS.",
+     "The power system should be divisible into two or more systems so that in the event of a failure of one system at least one other system will remain in operation and provide sufficient power for station keeping.",
+     "The power system should be capable of isolating any fault so that it does not compromise station keeping.",
+     "The power system need NOT to be redundant for an Equipment Class 1 (DP1) vessel."
+    ],
+    "resp": 3
+   },
+   {
+    "n": 22,
+    "tipo": "mc",
+    "q": "How is the redundancy of the power system on Equipment Class 2 (DP2) vessel defined? (Ref: IMO MSC 1580)",
+    "opts": [
+     "The power system need NOT to be redundant.",
+     "The power system of a Equipment Class 2 (DP2) vessel should always be operated split, or OPEN BUS.",
+     "The power system should be divisible into two or more systems so that in the event of a failure of one system at least one other system will remain in operation and provide sufficient power for station keeping.",
+     "The power system should be capable of isolating any fault so that it does not compromise station keeping."
+    ],
+    "resp": 2
+   },
+   {
+    "n": 23,
+    "tipo": "mc",
+    "q": "How is the redundancy of the power system on Equipment Class 3 (DP3) vessels defined? (Ref: IMO MSC 1580)",
+    "opts": [
+     "The redundancy of the power system for Equipment Class 3 (DP3) vessels is not defined by classification or IMO MSC 1580.",
+     "The power system should be divisible into THREE or more systems so that in the event of a failure of one system at least one other system will remain in operation and provide sufficient power for station keeping. The divided power stations should be located in different spaces separated by A60 class divisions.",
+     "The power system should be capable of proving its capability to recover abnormal conditions and start alternative power systems automatically even if separated by A60 class divisions.",
+     "The power system should be divisible into TWO or more systems so that in the event of a failure of one system at least one other system will remain in operation and provide sufficient power for station keeping. The divided power stations should be located in different spaces separated by A60 class divisions."
+    ],
+    "resp": 3
+   },
+   {
+    "n": 24,
+    "tipo": "mc",
+    "q": "What are the DP Control System requirements for Equipment class 1 (DP1) vessels? (Ref: IMO MSC 1850)",
+    "opts": [
+     "The DP control system should consist of at least two DP Controllers and a Back Up DP Controller.",
+     "The DP Control System requires at least one DP Controller but no redundancy (ie two DP controllers) is required.",
+     "The DP system should consist of at least two DP Controllers.",
+     "The DP system should consist of one DP Controller and a back up DP Controller in a separated compartment."
+    ],
+    "resp": 1
+   },
+   {
+    "n": 25,
+    "tipo": "mc",
+    "q": "What are the DP Control System requirements for Equipment Class 2 (DP2) vessels? (Ref: IMO MSC 1580)",
+    "opts": [
+     "The DP control system should consist of at least two DP Controllers and a Back Up DP Controller.",
+     "The DP system should consist of one DP Controller and a back up DP Controller in a separated compartment.",
+     "The DP Control System requires at least one DP Controller but no redundancy (ie two DP controllers) is required.",
+     "The DP system should consist of at least two DP Controllers."
+    ],
+    "resp": 3
+   },
+   {
+    "n": 26,
+    "tipo": "mc",
+    "q": "What are the DP Control System requirements for Equipment Class 3 (DP3) vessels? (Ref: IMO MSC 1580)",
+    "opts": [
+     "The DP system should consist of at least 2 DP control systems and an INS (inertial navigation system).",
+     "The DP system should consist of at least 2 DP control systems.",
+     "The DP system should consist of 1 DP computer system.",
+     "The DP system should consist of at least 2 DP control systems and a back up DP control system."
+    ],
+    "resp": 3,
+    "exp": "IMO MSC.1/Circ.1580, 3.4.2.3 (Manual Keelson, p. 175): pelo menos dois computadores no sistema principal, mais um sistema de controle DP de reserva (backup)."
+   },
+   {
+    "n": 27,
+    "tipo": "mc",
+    "q": "Redundancy Concepts on DP vessels can be defeated by equipment and systems being incorrectly arranged during DP Operations. As a result process control is critically important for DP activities and part of this is confirming mechanical and electrical system are correctly set up and aligned. When should the DP Engine Room Checklist be completed? (Ref: IMCA M103)",
+    "opts": [
+     "The DP Engine Room Checklist should be completed at every change of engineering watch.",
+     "The DP Engine Room Checklist should be completed when the vessel approaches the 500m zone or when requested by the DPO on watch.",
+     "The DP Engine Room Checklist should be completed when requested by the DPO on watch.",
+     "The DP Engine Room Checklist should be completed once a day and recorded in the engineering log book."
+    ],
+    "resp": 1,
+    "exp": "IMCA M103 3.4.8 (Manual Keelson, p. 267): o checklist de sala de máquinas é feito antes de se aproximar a 500 m do local de trabalho ou quando o DPO de serviço solicitar."
+   },
+   {
+    "n": 28,
+    "tipo": "mc",
+    "q": "What is the advantage of dividing electrical systems into two segregated systems using an OPEN bus-tie? (Ref: IMCA M103)",
+    "opts": [
+     "The loss of electrical power in one section should not lead to a loss of electrical power in any of the other sections, making it unlikely that the vessel will suffer a total black out or lose all thrusters.",
+     "There is no advantage of dividing electrical systems into two segregated systems using an OPEN BUS-TIE.",
+     "Dividing electrical systems into two segregated systems using an OPEN BUS-TIE benefits fuel efficiency.",
+     "Dividing electrical systems into two segregated systems using an OPEN BUS-TIE assists the explanation of segregation to clients."
+    ],
+    "resp": 0
+   },
+   {
+    "n": 29,
+    "tipo": "mc",
+    "q": "How many bus-tie circuit breakers are required between each redundant DP machinery group on DP Equipment Class 3 vessels? (Ref: IMCA M103)",
+    "opts": [
+     "One BUS-TIE circuit breaker is required between each redundant DP machinery group",
+     "Two BUS-TIE circuit breakers are required between each redundant DP machinery group.",
+     "BUS-TIE circuit breakers are not required as the system will be operating CLOSED BUS.",
+     "Three BUS-TIE circuit breakers are required between each redundant DP machinery group."
+    ],
+    "resp": 1
+   },
+   {
+    "n": 30,
+    "tipo": "mc",
+    "q": "How should fuel oil systems be operated on DP vessels? (Ref: IMCA M103)",
+    "opts": [
+     "Fuel oil systems should be operated so they are split in line with the redundancy philosophy of the vessel. This may not be possible for DP1 vessels.",
+     "Fuel oil systems should be operated so they can be split in line with the switchboard sections of the vessel.",
+     "Fuel oil systems should be operated so they are split per engine.",
+     "Fuel oil systems should be operated so they can be split in line with the redundancy philosophy of the vessel for DP3 vessels. DP1 and DP2 vessels can operate with a single fuel system."
+    ],
+    "resp": 0,
+    "unsure": true
+   },
+   {
+    "n": 31,
+    "tipo": "mc",
+    "q": "In which of the following ways should piping systems for different redundancy groups be routed on Equipment Class 3 vessels? (Ref: IMO MSC 1580)",
+    "opts": [
+     "Separately and divided by A60 class divisions and with watertight integrity below the waterline.",
+     "Separately and divided by A60 class divisions only.",
+     "Separately but static components need not be divided by class division.",
+     "Need not be separated as long as the system has no active equipment."
+    ],
+    "resp": 0
+   },
+   {
+    "n": 32,
+    "tipo": "mc",
+    "q": "What is the effect of a loss of control air to a thruster gravity tank. (Ref: MTS)",
+    "opts": [
+     "Alarm, no effect on the thruster in the short term though over time damage may occur to sealing arrangements.",
+     "Thruster stops.",
+     "Compressed air supplies are never used for thruster gravity tanks.",
+     "Alarm on LOW air pressure and further alarm and thruster shutdown on a LOW LOW pressure."
+    ],
+    "resp": 0,
+    "exp": "Confirmado por você: a perda de ar de controle no gravity tank gera apenas alarme."
+   },
+   {
+    "n": 34,
+    "tipo": "mc",
+    "q": "What is a Critical Activity Mode (CAM) of operation? (Ref: IMCA M103)",
+    "opts": [
+     "The CAM mode of operation is a setting in the DP system that changes the Consequence Analysis to alarm on single thruster loss.",
+     "The CAM defines the most fault tolerant configuration of the DP System and Equipment.",
+     "The CAM defines mission activities where special precautions may be needed in how the vessel is operated.",
+     "The CAM mode of operation reduces allowable position and heading deviation and also places the DP System in a high gain mode promoting positional / heading accuracy."
+    ],
+    "resp": 1
+   },
+   {
+    "n": 35,
+    "tipo": "mc",
+    "q": "When should field arrival trials be conducted? (Ref: IMCA M103)",
+    "opts": [
+     "Field arrival trials should be carried out on arrival at the field and conducted outside the 500 metre safety zone. The checks should be repeated when the vessel returns to the field after an absence of more than 24 hours.",
+     "Field arrival trials should be carried out on arrival at the field and conducted outside the 500 metre safety zone. The checks need not be repeated as long as the ASOG does not change.",
+     "Field arrival trials should be carried out on arrival at the field. The checks should be repeated every time the vessel returns to the field.",
+     "Field arrival trials should be carried out on arrival at the field and conducted outside the 100 metre safety zone. The checks should be repeated when the vessel returns to the field after an absence of more than 48 hours."
+    ],
+    "resp": 0,
+    "exp": "IMCA M103 (Manual Keelson, p. 64): na chegada ao campo, fora da zona de 500 m; repetir após ausência superior a 24 horas."
+   },
+   {
+    "n": 36,
+    "tipo": "mc",
+    "q": "What equipment should be checked during DP field arrival trials? (Ref: IMCA M103)",
+    "opts": [
+     "Black out recovery systems",
+     "Independent joystick (IJS), manual controls and position reference systems.",
+     "Thrusters, power generation including emergency generator.",
+     "Thrusters, power generation, auto DP, independent joystick (IJS) and manual controls."
+    ],
+    "resp": 3,
+    "exp": "IMCA M103 (Manual Keelson, p. 64): thrusters, geração de energia, auto DP, joystick independente (IJS) e controles manuais."
+   },
+   {
+    "n": 37,
+    "tipo": "mc",
+    "q": "With respect to the environment and available thrust, when should consideration be given to suspending operations? (Ref: IMO MSC 1580)",
+    "opts": [
+     "In the prevailing weather conditions when the vessel can no longer hold position with all thrust available.",
+     "When the environmental conditions (e.g. wind, wave, current etc) are such that the DP vessel will no longer be able to keep position in the event of its worst case failure as stated in the DP FMEA.",
+     "When the weather is worsening and the vessel's thrust requirement is over 60%.",
+     "In the prevailing weather conditions when the vessel can no longer maintain its heading."
+    ],
+    "resp": 1
+   },
+   {
+    "n": 38,
+    "tipo": "mc",
+    "q": "Which of the following is a decision support tool for DP operations? (Ref: IMO MSC 1580)",
+    "opts": [
+     "DP Operations Manual.",
+     "DP Arrival Checklist.",
+     "Activity Specific Operating Guidelines (ASOG).",
+     "DP Failure Mode Effect Analysis (FMEA)."
+    ],
+    "resp": 2
+   },
+   {
+    "n": 39,
+    "tipo": "mc",
+    "q": "Which of the following best describes a Task Appropriate Mode (TAM) of operation? (Ref: IMCA M103)",
+    "opts": [
+     "The TAM mode is a catch all statement for different operating modes, either Critical or Non Critical. It defines all the modes that the vessel may operate within.",
+     "The TAM is a risk based operating mode in which the vessel may be configured and operated such that a single point failure could result in exceeding the vessels identified worst case failure.",
+     "The TAM mode of operation is a setting in the DP system that turns off the Consequence Analysis.",
+     "The TAM mode is an environmental mode setting of lower gain and is associated to Class environmental notations. It should not be used when taking critical activities when high positional accuracy is needed."
+    ],
+    "resp": 1
+   },
+   {
+    "n": 40,
+    "tipo": "mc",
+    "q": "Who should be involved in testing and rehearsing emergency communications within the 500m zone? (Ref: IMCA M205)",
+    "opts": [
+     "Vessel crews and the company's DPA.",
+     "All SDPOs and the engineering department on the vessel.",
+     "All DPOs, SDPOs and the Master on the vessel.",
+     "Vessel crews and crews of nearby structures or vessels."
+    ],
+    "resp": 3,
+    "unsure": true
+   },
+   {
+    "n": 41,
+    "tipo": "mc",
+    "q": "De onde foi gerado a definição das seis regras de ouro de DP?",
+    "opts": [
+     "Eventos de perda de DP da CBO, eventos reportados pelo MTS e troca de experiência com armadores das frotas.",
+     "Eventos de perda de DP nas Unidades Marítimas, eventos reportados pela IMCA e troca de experiência com armadores das frotas.",
+     "Eventos de perda de DP da Petrobras, eventos reportados pela IMCA e troca de experiência com armadores das frotas.",
+     "Eventos reportados pelo MTS e troca de experiência com armadores das frotas."
+    ],
+    "resp": 2,
+    "exp": "Regras de Ouro (CBO): as 6 regras vieram da análise de eventos de perda de posicionamento da Petrobras, dos eventos reportados pelo IMCA e da troca de experiência com armadores da frota."
+   },
+   {
+    "n": 42,
+    "tipo": "mc",
+    "q": "A recomendação de ter sempre um trouble shooting dos fabricantes próximos ao local de trabalho do Pessoal Técnico remete ao bom uso de qual regra de ouro?",
+    "opts": [
+     "RDP 5 - Não execute testes e Manutenções em Operação",
+     "RDP 4 – Entenda os alarmes",
+     "RDP 7 – Certifique-se da configuração da embarcação",
+     "RDP 1 – Respeite os limites operacionais"
+    ],
+    "resp": 1,
+    "exp": "Regras de Ouro (CBO), RDP 4 (Entenda os alarmes): recomenda ter sempre à mão o trouble shooting do fabricante, com causas, efeitos e ação recomendada."
+   },
+   {
+    "n": 43,
+    "tipo": "mc",
+    "q": "Pela Regra de Ouro DP 3, qual documento trata da configuração que deve ser seguida para garantir a manutenção da posição após um cenário de qualquer falha singular.",
+    "opts": [
+     "DP TRIAL",
+     "ASOG",
+     "CAM",
+     "FMEA"
+    ],
+    "resp": 2,
+    "exp": "Regras de Ouro (CBO), RDP 3: a configuração deve seguir sempre o definido pelo CAM da embarcação para manter a posição após qualquer falha singular."
+   },
+   {
+    "n": 44,
+    "tipo": "mc",
+    "q": "Segundo a Regra de Ouro DP 1, qual objetivo para definir os limites operacionais?",
+    "opts": [
+     "Certifica-se da configuração da embarcação.",
+     "Garantir que a embarcação manterá posição e proa mesmo após um cenário do pior caso de falha singular.",
+     "Entender melhor os alarmes do DP.",
+     "Executar tarefas apenas se familiarizado e treinado."
+    ],
+    "resp": 1,
+    "exp": "Regras de Ouro (CBO), RDP 1: os limites operacionais existem para garantir que a embarcação mantenha posição e proa mesmo após o pior caso de falha singular."
+   },
+   {
+    "n": 45,
+    "tipo": "mc",
+    "q": "Por que é crucial que os operadores de DP sejam familiarizados com a embarcação específica antes de executar uma operação?",
+    "opts": [
+     "Para evitar a necessidade de monitoramento constante do sistema DP por outros membros da tripulação.",
+     "Para assegurar que os operadores ajustem corretamente os parâmetros do sistema DP e executem as manobras de emergência quando necessário.",
+     "Para que os operadores possam depender unicamente dos sistemas automáticos da embarcação, sem a necessidade de intervenção manual.",
+     "Para garantir que os operadores possam otimizar o consumo de combustível."
+    ],
+    "resp": 1
+   },
+   {
+    "n": 46,
+    "tipo": "mc",
+    "q": "Uma embarcação DP possui componentes e sistemas, que atuam em conjunto, para manter a posição e aproamento desejados da embarcação. Para alcançar mais confiabilidade, as embarcações são divididas em classes. Quais são as classes de DP de acordo com a IMO?",
+    "opts": [
+     "Somente classes 1 e 2, pois a 3 é considerada um tipo de classe 2",
+     "Classe 0, classe 1 e classe 2",
+     "Classe 0, classe 1, classe 2 e classe 3",
+     "Classe 1, classe 2 e classe 3"
+    ],
+    "resp": 3
+   },
+   {
+    "n": 47,
+    "tipo": "mc",
+    "q": "Com base nos conceitos de classes de embarcação DP, podemos afirmar que:",
+    "opts": [
+     "Para embarcações classe 2 e 3, a energia disponível após o pior caso de falha singular deve ser suficiente para manter a posição da embarcação",
+     "O sistema de geração de energia deve ser redundante em qualquer classe de DP",
+     "Para embarcações DP 1, a falha de um componente do sistema de propulsão, incluindo o passo, azimute e/ou controle de velocidade, causará, obrigatoriamente, a perda da posição e aproamento da embarcação",
+     "Em embarcações Classe 3, é necessária, apenas, a separação física A-60 entre os componentes do sistema de controle de DP"
+    ],
+    "resp": 0
+   },
+   {
+    "n": 48,
+    "tipo": "mc",
+    "q": "Um conceito muito importante para o estudo do FMEA é o do Pior Caso de Falha Singular (WCF). O que significa esse conceito para uma embarcação DP?",
+    "opts": [
+     "É a falha singular identificada, que resulta em maior prejuízo para a capacidade de manutenção de posição e aproamento da embarcação",
+     "É uma falha simples, com pequeno potencial de interferir na manutenção de posição e aproamento da embarcação",
+     "É a falha identificada no sistema de propulsão, que pode levar a um blecaute total",
+     "É a falha singular identificada, que afeta a redundância do sistema de geração de energia da embarcação"
+    ],
+    "resp": 0
+   },
+   {
+    "n": 49,
+    "tipo": "mc",
+    "q": "Quais são as categorias ou estados definidos no ASOG, do estado normal ao estado de emergência, respectivamente?",
+    "opts": [
+     "Verde, azul, amarelo e vermelho",
+     "Verde, azul, laranja e vermelho",
+     "Azul, verde, laranja e vermelho",
+     "Azul, verde, amarelo e vermelho"
+    ],
+    "resp": 0
+   },
+   {
+    "n": 50,
+    "tipo": "mc",
+    "q": "Qual é a função principal do Sistema de Controle de Posicionamento Dinâmico (DP) em embarcações e plataformas offshore, e como ele contribui para a segurança e eficiência das operações marítimas?",
+    "opts": [
+     "Controlar automaticamente o rumo desejado da embarcação",
+     "Substituir o elemento humano nas manobras mais complexas da embarcação;",
+     "Controlar automaticamente a posição e o aproamento desejadas da embarcação;",
+     "Controlar automaticamente o caturro e o balanço da embarcação;"
+    ],
+    "resp": 2
+   },
+   {
+    "n": 51,
+    "tipo": "mc",
+    "q": "Os sinais LAN, CAN e SERIAL são exemplos de diferentes tipos de protocolos de comunicação utilizados para transmitir dados entre dispositivos e sistemas a bordo de embarcações. Cada um desses protocolos tem características específicas que os tornam adequados para certas aplicações. Como é feita a comunicação dos Sensores com a cabine principal de DP?",
+    "opts": [
+     "Através do \"Network Ring\" de fibra ótica;",
+     "Através de Rede CAN;",
+     "Através de Sinal Serial RS-232 e RS-422;",
+     "Através de Rede LAN (Ethernet);"
+    ],
+    "resp": 2,
+    "exp": "Manual Keelson, p. 165: os sensores (ex.: MRU) chegam ao DP por sinal serial (NMEA) ou entradas analógicas."
+   },
+   {
+    "n": 53,
+    "tipo": "mc",
+    "q": "Para embarcações Classe 2 e 3, o Sistema de Controle DP prevê uma função de software que continuamente verifica se a embarcação irá automaticamente manter posição caso ocorra o pior caso de falha singular. O nome desta função é:",
+    "opts": [
+     "TAGOS",
+     "TTT – Time to Terminate",
+     "Consequence Analysis",
+     "DPVAD"
+    ],
+    "resp": 2
+   },
+   {
+    "n": 54,
+    "tipo": "mc",
+    "q": "Em relação a um Gerador Síncrono de aplicação naval, só não podemos afirmar que:",
+    "opts": [
+     "A roda de diodos faz parte do conjunto que produz a corrente de excitação",
+     "O rotor é um eixo polarizado pelo conjunto da excitatriz;",
+     "O AVR é responsável pela estabilidade e controle da frequência e da tensão de saída;",
+     "O estator tem a função de armazenar os condutores onde será induzida a corrente;"
+    ],
+    "resp": 2
+   },
+   {
+    "n": 55,
+    "tipo": "mc",
+    "q": "De acordo com o item 5.3.3 da IMCA M 206, que descreve as Conexões Cruzadas (Cross Connections) em sistemas e equipamentos de uma embarcação com Sistema de DP de classe 2, qual alternativa não representa uma \"Conexão Cruzada\"?",
+    "opts": [
+     "A abertura da válvula de interligação entre os tanques de serviço de combustível dos MCPs de BB e de BE;",
+     "Disjuntores de interligação entre os DCs: do DC-30 fechado e do DC-40 fechado",
+     "Disjuntores de interligação entre os DCs: do DC-30 fechado e do DC-40 aberto;",
+     "A alimentação de 440V da bomba reserva de água de baixa dos azimutais do mesmo barramento da bomba que permanece em funcionamento"
+    ],
+    "resp": 2,
+    "exp": "Manual Keelson, p. 80: conexão cruzada é a que pode afetar mais de um grupo de redundância. Barramentos fechados, válvulas de interligação e alimentação do outro barramento são cruzadas; com um disjuntor aberto não há conexão."
+   },
+   {
+    "n": 56,
+    "tipo": "mc",
+    "q": "O princípio de funcionamento do regulador de velocidade de um MCP é baseado em feedback e controle automático. Qual é a função principal que um regulador de velocidade desempenha para o bom funcionamento de um diesel gerador?",
+    "opts": [
+     "Monitorar a corrente de excitação e controlar diretamente a tensão do gerador, mesmo com variações de carga",
+     "Monitorar e controlar a RPM, através da injeção de combustível no motor, mesmo com variações de carga",
+     "Monitorar a tensão de saída e controlar a corrente de excitação do gerador, mesmo com variações de carga",
+     "Monitorar a injeção de combustível e controlar diretamente a RPM do motor, mesmo com variações de carga"
+    ],
+    "resp": 1
+   },
+   {
+    "n": 57,
+    "tipo": "mc",
+    "q": "Em sistemas elétricos marítimos a redundância de geração é praticada, de forma que os geradores síncronos dividam carga no barramento, sobretudo durante as operações em DP. Sobre o fluxo de potências ativa e reativa entregues ao barramento, pode-se afirmar respectivamente:",
+    "opts": [
+     "São controladas pela máquina primária e AVR.",
+     "Não se convenciona sentido de fluxo de potência em sistemas elétricos marítimos.",
+     "São controladas pela excitação de campo e AVR.",
+     "Apresentam sentido das cargas para a geração."
+    ],
+    "resp": 0
+   },
+   {
+    "n": 58,
+    "tipo": "mc",
+    "q": "Em relação ao conhecimento do Sistema de Controle da Propulsão de Passo Variável e RPM constante, até mesmo para melhor pesquisa de falhas e performance, devemos dividir o Sistema de Propulsão em quais partes integradas?",
+    "opts": [
+     "Sistema Mecânico do Hélice, Sistema Hidráulico CPP e Sistema de Controle de DP",
+     "Sistema de Controle Remoto, Inversor de Frequência e Sistema Mecânico do Hélice",
+     "Sistema de Controle Remoto, Sistema Hidráulico CPP e Sistema Mecânico do Hélice",
+     "Sistema Controle de DP, Manetes de Controle e Sistema de Joystick Independente"
+    ],
+    "resp": 2
+   },
+   {
+    "n": 59,
+    "tipo": "mc",
+    "q": "Em relação ao Sistema de Propulsão diesel mecânico com redutora e passo controlável, para que serve o \"OD-Box\"?",
+    "opts": [
+     "Para servir de compensação para eventuais perdas nas câmaras de atuação do CPP",
+     "Para facilitar o acesso ao Sistema de \"Feedback\" do CPP",
+     "Para servir de caixa de armazenamento do óleo hidráulico no CPP",
+     "Para distribuição do óleo hidráulico do CPP em cada câmara de atuação no hélice"
+    ],
+    "resp": 3
+   }
+  ]
+ }
+];
+/* ================================================================ */
+
+const STATUS=[["all","Todas"],["new","Não respondidas"],["wrong","Só as que errei"],["fav","Favoritas"],["dub","⚠ Duvidosas"],["bl","🚫 Lista negra"]];
+const TYPES=[["all","Todas"],["vf","Verdadeiro ou falso"],["mc","Múltipla escolha"]].filter(([v])=>v==="all"||SUBJECTS.some(s=>s.questions.some(q=>q.tipo===v)));
+const KEY="simulado-dp-cpd-v1";
+let S={ans:{},fav:{},dub:{},bl:{}}, cur=0, fs="all", ft="all", shuffle=false, rank={}, armed=false;
+
+try{const r=localStorage.getItem(KEY); if(r) S=Object.assign(S,JSON.parse(r));}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
+
+SUBJECTS.forEach(s=>s.questions.forEach((q,i)=>{
+  q.id="Q"+q.n;
+  if(q.tipo==="vf") q.opts=["Verdadeiro","Falso"];
+}));
+
+const $=id=>document.getElementById(id);
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function chips(el,items,cur,key){
+  el.innerHTML=items.map(([v,l])=>`<button class="chip" aria-pressed="${cur===v}" data-${key}="${v}">${l}</button>`).join("");
+}
+
+function visible(sub){
+  let l=sub.questions.filter(q=>{
+    const a=S.ans[q.id], inBl=!!S.bl[q.id];
+    if(ft!=="all"&&q.tipo!==ft) return false;
+    if(fs==="bl") return inBl;
+    if(inBl) return false;
+    if(fs==="new") return a===undefined;
+    if(fs==="wrong") return a!==undefined&&a!==q.resp;
+    if(fs==="fav") return !!S.fav[q.id];
+    if(fs==="dub") return !!S.dub[q.id];
+    return true;
+  });
+  if(shuffle) l=l.slice().sort((a,b)=>(rank[a.id]??0)-(rank[b.id]??0));
+  return l;
+}
+
+function render(){
+  const sub=SUBJECTS[cur];
+  $("title").textContent=sub.nome;
+  $("tabs").hidden=SUBJECTS.length<2;
+  $("tabs").innerHTML=SUBJECTS.map((s,i)=>`<button class="chip tab" aria-pressed="${i===cur}" data-tab="${i}">${s.emoji} ${esc(s.nome)}<small>${s.sigla}</small></button>`).join("");
+  chips($("fStatus"),STATUS,fs,"fs");
+  const t=$("fType");
+  t.innerHTML=TYPES.map(([v,l])=>`<button class="chip" aria-pressed="${ft===v}" data-ft="${v}">${l}</button>`).join("")
+    +`<button class="chip" aria-pressed="${shuffle}" data-shuffle="1">🔀 Embaralhar</button>`;
+
+  const all=sub.questions;
+  $("sOk").textContent=all.filter(q=>S.ans[q.id]===q.resp).length;
+  $("sBad").textContent=all.filter(q=>S.ans[q.id]!==undefined&&S.ans[q.id]!==q.resp).length;
+  $("sFav").textContent=all.filter(q=>S.fav[q.id]).length;
+
+  const list=visible(sub);
+  $("sTot").textContent=list.length;
+  $("count").textContent=list.length+(list.length===1?" questão":" questões")+" neste filtro";
+  $("reset").textContent=armed?"Confirmar: apagar tudo?":"Zerar";
+
+  $("list").innerHTML=list.length?list.map(q=>{
+    const a=S.ans[q.id], done=a!==undefined;
+    const opts=q.opts.map((o,i)=>{
+      let c="opt"; if(done){ if(i===q.resp)c+=" right"; else if(i===a)c+=" wrong"; }
+      return `<button class="${c}" data-ans="${q.id}|${i}" ${done?"disabled":""}>${esc(o)}</button>`;
+    }).join("");
+    const fb=done?`<div class="fb">${a===q.resp?"✅ Acertou.":"❌ Errou."} ${q.exp?esc(q.exp):""}${q.unsure?" Gabarito sugerido, não consta no material enviado.":""} <button class="link" data-redo="${q.id}">Refazer</button></div>`:"";
+    return `<article class="q"><div class="tag">Questão ${q.n} · ${q.tipo==="vf"?"Verdadeiro ou falso":"Múltipla escolha"}${q.unsure?" · ⚠ gabarito a confirmar":""}</div><p>${esc(q.q)}</p>${opts}${fb}
+      <div class="tools">
+        <button class="tool" aria-pressed="${!!S.fav[q.id]}" data-tg="fav|${q.id}">⭐ Favorita</button>
+        <button class="tool" aria-pressed="${!!S.dub[q.id]}" data-tg="dub|${q.id}">⚠ Duvidosa</button>
+        <button class="tool" aria-pressed="${!!S.bl[q.id]}" data-tg="bl|${q.id}">🚫 Lista negra</button>
+      </div></article>`;
+  }).join(""):`<div class="empty">Nenhuma questão neste filtro.</div>`;
+}
+
+document.addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  const d=b.dataset;
+  if(d.tab!==undefined){cur=+d.tab;}
+  else if(d.fs){fs=d.fs;}
+  else if(d.ft){ft=d.ft;}
+  else if(d.shuffle){shuffle=!shuffle; rank={}; SUBJECTS.forEach(s=>s.questions.forEach(q=>rank[q.id]=Math.random()));}
+  else if(d.ans){const [id,i]=d.ans.split("|"); S.ans[id]=+i; save();}
+  else if(d.redo){delete S.ans[d.redo]; save();}
+  else if(d.tg){const [k,id]=d.tg.split("|"); if(S[k][id]) delete S[k][id]; else S[k][id]=1; save();}
+  else if(b.id==="reset"){
+    if(!armed){armed=true; render(); setTimeout(()=>{armed=false;render();},4000); return;}
+    S={ans:{},fav:{},dub:{},bl:{}}; save(); armed=false;
+  } else return;
+  render();
+});
+render();
+</script>
+</body>
+</html>
